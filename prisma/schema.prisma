@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Study {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  indexedAt   DateTime @default(now())
+  publishedAt DateTime?
+
+  title       String
+  authors     String   @default("[]")
+  journal     String
+  year        Int
+  doi         String?  @unique
+  pmid        String?  @unique
+  url         String?
+  source      String   @default("OTHER")
+  isPeerReviewed Boolean @default(true)
+  isPreprint   Boolean   @default(false)
+
+  plainSummary      String
+  keyFindings       String  @default("[]")
+  limitations       String
+  clinicalRelevance String?
+
+  evidenceScore Float
+  studyDesign   String @default("OTHER")
+  sampleSize    Int?
+
+  sequencingMethod String?
+  cohortType        String?
+  duration          String?
+
+  taxa        StudyTaxon[]
+  tags        Tag[]
+  collections CollectionStudy[]
+  alerts      AlertMatch[]
+
+  @@index([evidenceScore])
+  @@index([source])
+  @@index([indexedAt])
+}
+
+model Taxon {
+  id      String @id @default(cuid())
+  name    String @unique
+  genus   String
+  species String?
+  phylum  String
+  color   String
+
+  studies StudyTaxon[]
+}
+
+model StudyTaxon {
+  id        String @id @default(cuid())
+  study     Study  @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  studyId   String
+  taxon     Taxon  @relation(fields: [taxonId], references: [id])
+  taxonId   String
+  direction String
+  magnitude Float?
+  pValue    Float?
+  note      String?
+
+  @@unique([studyId, taxonId])
+}
+
+model Tag {
+  id      String  @id @default(cuid())
+  label   String  @unique
+  color   String
+  studies Study[]
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String
+  description String?
+  emoji       String?
+  userId      String
+  studies     CollectionStudy[]
+}
+
+model CollectionStudy {
+  id           String     @id @default(cuid())
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  study        Study      @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  studyId      String
+  addedAt      DateTime   @default(now())
+  note         String?
+
+  @@unique([collectionId, studyId])
+}
+
+model Alert {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  userId        String
+  name          String
+  keywords      String    @default("[]")
+  minEvidence   Float     @default(0)
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  matches       AlertMatch[]
+}
+
+model AlertMatch {
+  id        String   @id @default(cuid())
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  alertId   String
+  study     Study    @relation(fields: [studyId], references: [id], onDelete: Cascade)
+  studyId   String
+  matchedAt DateTime @default(now())
+  seen      Boolean  @default(false)
+
+  @@unique([alertId, studyId])
+}
+
+model AgentRun {
+  id           String    @id @default(cuid())
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  status       String    @default("RUNNING")
+  source       String?
+  studiesFound Int       @default(0)
+  studiesNew   Int       @default(0)
+  alertsFired  Int       @default(0)
+  errorMsg     String?
+  logLines     String    @default("[]")
+}
