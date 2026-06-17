@@ -114,14 +114,20 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           continue;
         }
 
-        // Deduplikace: DOI → PMID → title+journal+year
-        const exists = raw.doi
-          ? await prisma.study.findFirst({ where: { doi: raw.doi } })
-          : raw.pmid
-            ? await prisma.study.findFirst({ where: { pmid: raw.pmid } })
-            : await prisma.study.findFirst({
-                where: { title: raw.title, journal: raw.journal, year: raw.year },
-              });
+        // Deduplikace: zkontroluj VŠECHNY identifikátory, ne jen jeden
+        let exists = false;
+        if (typeof raw.doi === "string" && raw.doi) {
+          exists = !!(await prisma.study.findFirst({ where: { doi: raw.doi }, select: { id: true } }));
+        }
+        if (!exists && typeof raw.pmid === "string" && raw.pmid) {
+          exists = !!(await prisma.study.findFirst({ where: { pmid: raw.pmid }, select: { id: true } }));
+        }
+        if (!exists) {
+          exists = !!(await prisma.study.findFirst({
+            where: { title: raw.title, journal: raw.journal, year: raw.year },
+            select: { id: true },
+          }));
+        }
         if (exists) continue;
 
         try {
@@ -209,7 +215,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
 
           totalNew++;
           newStudiesForInsight.push({
-            title: raw.title,
+            title: processed.titleCz || raw.title,
             plainSummary: processed.plainSummary,
             evidenceScore: score,
             studyId: study.id,

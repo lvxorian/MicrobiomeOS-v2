@@ -13,22 +13,19 @@ function text(val: any): string {
 const PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 export async function fetchPubMed(): Promise<RawStudy[]> {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const dateStr = `${yesterday.getFullYear()}/${String(yesterday.getMonth() + 1).padStart(2, "0")}/${String(yesterday.getDate()).padStart(2, "0")}`;
-
   try {
-    // 1. Search for recent microbiome studies
+    // 1. Search for recent microbiome studies (poslední 2 dny)
     const searchUrl = `${PUBMED_BASE}/esearch.fcgi`;
     const searchRes = await axios.get(searchUrl, {
       params: {
         db: "pubmed",
-        term: `microbiome[Title/Abstract] AND ("${dateStr}"[Date - Publication] : "3000"[Date - Publication])`,
+        term: "microbiome[Title/Abstract]",
+        reldate: 2,           // poslední 2 dny
+        datetype: "pdat",     // podle data publikace
         retmax: 50,
         retmode: "json",
         sort: "relevance",
+        usehistory: "y",
       },
       timeout: 15000,
     });
@@ -36,31 +33,35 @@ export async function fetchPubMed(): Promise<RawStudy[]> {
     const idList: string[] = searchRes.data?.esearchresult?.idlist || [];
     if (idList.length === 0) return [];
 
-    // 2. Fetch metadata
-    const fetchUrl = `${PUBMED_BASE}/efetch.fcgi`;
-    const fetchRes = await axios.get(fetchUrl, {
-      params: {
-        db: "pubmed",
-        id: idList.join(","),
-        rettype: "xml",
-        retmode: "xml",
-      },
-      timeout: 30000,
-    });
+    // 2. Fetch metadata ve várkách po 50 (PubMed limit)
+    const metadata: Array<Record<string, unknown>> = [];
+    for (let i = 0; i < idList.length; i += 50) {
+      const batch = idList.slice(i, i + 50);
+      const fetchUrl = `${PUBMED_BASE}/efetch.fcgi`;
+      const fetchRes = await axios.get(fetchUrl, {
+        params: {
+          db: "pubmed",
+          id: batch.join(","),
+          rettype: "xml",
+          retmode: "xml",
+        },
+        timeout: 30000,
+      });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsed = (await parseStringPromise(fetchRes.data)) as any;
-    const articles = parsed?.PubmedArticleSet?.PubmedArticle || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = (await parseStringPromise(fetchRes.data)) as any;
+      const articles = parsed?.PubmedArticleSet?.PubmedArticle || [];
+      metadata.push(...articles);
+    }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return articles.map((article: any) => {
+    return metadata.map((article: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
       const a = article.MedlineCitation?.[0];
       const art = a?.Article?.[0];
       const title = text(art?.ArticleTitle?.[0]) || "Neznámý název";
       const abstract = (art?.Abstract?.[0]?.AbstractText || []).map(text).join(" ") || "Abstrakt není k dispozici";
       const journal = text(art?.Journal?.[0]?.Title?.[0]) || text(art?.Journal?.[0]?.ISOAbbreviation?.[0]) || "Neznámý časopis";
 
-      // Datum publikace — z DateCompleted (YYYY, MM, DD) nebo ArticleDate
+      // Datum publikace
       const dateObj = a?.DateCompleted?.[0] || art?.ArticleDate?.[0] || a?.DateRevised?.[0];
       const pubYear = parseInt(text(dateObj?.Year?.[0]) || String(new Date().getFullYear()));
       const pubMonth = parseInt(text(dateObj?.Month?.[0]) || "1");
@@ -69,12 +70,10 @@ export async function fetchPubMed(): Promise<RawStudy[]> {
 
       const pmid = text(a?.PMID?.[0]) || a?.PMID?.[0]?._ || "";
       const doi =
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._
+        art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._  // eslint-disable-line @typescript-eslint/no-explicit-any
         || null;
       const authorList = art?.AuthorList?.[0]?.Author || [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const authors = authorList.map((auth: any) => {
+      const authors = authorList.map((auth: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
         const last = text(auth.LastName?.[0]);
         const fore = text(auth.ForeName?.[0]);
         return `${last} ${fore}`;
@@ -88,7 +87,7 @@ export async function fetchPubMed(): Promise<RawStudy[]> {
         year: pubYear,
         publishedAt,
         pmid: String(pmid),
-        doi,
+        doi: typeof doi === "string" ? doi : undefined,
         url: doi ? `https://doi.org/${doi}` : `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
         source: "PUBMED" as const,
         isPeerReviewed: true,
