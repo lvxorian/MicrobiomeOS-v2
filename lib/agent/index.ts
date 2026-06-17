@@ -6,6 +6,7 @@ import { fetchCell } from "./sources/cell";
 import { fetchGutBMJ } from "./sources/gut-bmj";
 import { processStudyWithLLM } from "./processor";
 import { scoreEvidence } from "./scorer";
+import { generateDailyInsight, saveDailyReport } from "./daily-insight";
 import type { RawStudy } from "@/types";
 
 const SOURCES = [
@@ -90,6 +91,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
     let totalFound = 0;
     let totalNew = 0;
     let totalAlerts = 0;
+    const newStudiesForInsight: { title: string; plainSummary: string; evidenceScore: number }[] = [];
 
     for (const src of sourcesToRun) {
       await logLine(runId, "FETCH", `${src.name}: hledání posledních studií...`);
@@ -192,6 +194,11 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           }
 
           totalNew++;
+          newStudiesForInsight.push({
+            title: raw.title,
+            plainSummary: processed.plainSummary,
+            evidenceScore: score,
+          });
           await logLine(runId, "STORE", `Uloženo: ${raw.title.slice(0, 60)}${raw.doi ? ` (DOI: ${raw.doi})` : ""}`);
 
           // Match alerts
@@ -217,6 +224,19 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
         alertsFired: totalAlerts,
       },
     });
+
+    // Generovat Daily Insight
+    if (newStudiesForInsight.length > 0 || totalFound > 0) {
+      await logLine(runId, "INFO", "Generuji Daily Insight...");
+      try {
+        const insight = await generateDailyInsight(newStudiesForInsight, totalFound, totalNew);
+        const keyFindings = newStudiesForInsight.map((s) => s.title);
+        await saveDailyReport(new Date(), insight, totalFound, totalNew, keyFindings);
+        await logLine(runId, "INFO", "Daily Insight uložen");
+      } catch (insightErr) {
+        await logLine(runId, "ERROR", `Chyba Daily Insight: ${(insightErr as Error).message}`);
+      }
+    }
   } catch (err) {
     await logLine(runId, "ERROR", `Kritická chyba: ${(err as Error).message}`);
     await prisma.agentRun.update({

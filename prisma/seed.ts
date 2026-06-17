@@ -422,6 +422,30 @@ async function main() {
   });
 
   console.log("  ✓ 1 agent run\n");
+
+  // ── DAILY REPORT ──────────────────────────────────────
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  await prisma.dailyReport.upsert({
+    where: { date: todayStart },
+    update: {},
+    create: {
+      date: todayStart,
+      summaryText:
+        "Dnešní sken přinesl 47 studií, z toho 6 nových indexovaných. Nejvýznamnějším nálezem je potvrzení účinnosti pasteurizované Akkermansia muciniphila na inzulinovou rezistenci u diabetiků 2. typu — studie s EV 9,2 v Nature Medicine posiluje důkazy pro klinické využití cílené modulace mikrobioty. V oblasti osy střevo–mozek přibyla rozsáhlá kohortová studie identifikující mikrobiální signaturu deprese. Meta-analýza 47 RCT v Gut potvrzuje benefit probiotik u ulcerózní kolitidy, zatímco u Crohnovy choroby efekt zůstává neprůkazný. Celkově pozorujeme trend k personalizované mikrobiomové intervenci — od dietních vláken přes probiotika až po FMT — s důrazem na výchozí složení mikrobioty jako prediktor odpovědi.",
+      keyFindingsJson: J([
+        "Akkermansia muciniphila a inzulinová rezistence — RCT, EV 9,2",
+        "Mikrobiální signatura deprese — kohorta 2 340 osob",
+        "Probiotika u IBD — meta-analýza 47 RCT, EV 9,5",
+        "Butyrát a Treg modulace — mechanistická studie",
+        "Vláknina a diverzita mikrobioty — RCT, EV 8,7",
+        "FMT u C. difficile — systematický přehled 12 400 pacientů, EV 8,9",
+      ]),
+      studiesCount: 47,
+      studiesNew: 6,
+    },
+  });
+  console.log("  ✓ 1 daily report\n");
   console.log("Seed dokončen!");
 }
 

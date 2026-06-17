@@ -138,3 +138,13 @@ model AgentRun {
   errorMsg     String?
   logLines     String    @default("[]")
 }
+
+model DailyReport {
+  id             String   @id @default(cuid())
+  date           DateTime @unique
+  summaryText    String
+  keyFindingsJson String  @default("[]")
+  studiesCount   Int
+  studiesNew     Int
+  createdAt      DateTime @default(now())
+}

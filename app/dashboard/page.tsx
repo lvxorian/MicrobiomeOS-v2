@@ -1,16 +1,32 @@
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { StatCard } from "@/components/shared/StatCard";
 import { StudyCard } from "@/components/studies/StudyCard";
+import { DailyInsightHero } from "@/components/shared/DailyInsightHero";
 import { getStudiesCount, getTaxaCount, getAverageEvidenceScore, getStudiesList } from "@/lib/db/queries";
+import { getLatestDailyReport } from "@/lib/db/daily-report-queries";
 import { Microscope, Share2, TrendingUp, Database } from "lucide-react";
 
 export default async function DashboardPage() {
-  const [studiesCount, taxaCount, avgScore, highEvidence] = await Promise.all([
+  const [studiesCount, taxaCount, avgScore, highEvidence, dailyReport] = await Promise.all([
     getStudiesCount(),
     getTaxaCount(),
     getAverageEvidenceScore(30),
     getStudiesList({ minEvidence: 7.0, limit: 8 }),
+    getLatestDailyReport(),
   ]);
+
+  const isToday = dailyReport
+    ? new Date(dailyReport.date).toDateString() === new Date().toDateString()
+    : false;
+
+  let keyFindings: string[] = [];
+  if (dailyReport) {
+    try {
+      keyFindings = JSON.parse(dailyReport.keyFindingsJson);
+    } catch {
+      keyFindings = [];
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -19,6 +35,17 @@ export default async function DashboardPage() {
         title="Přehled"
         description="Denní monitoring mikrobiomového výzkumu. Nejnovější studie zpracované AI agentem do strukturovaných výtahů."
       />
+
+      {dailyReport && (
+        <DailyInsightHero
+          date={dailyReport.date.toISOString()}
+          summaryText={dailyReport.summaryText}
+          keyFindings={keyFindings}
+          studiesCount={dailyReport.studiesCount}
+          studiesNew={dailyReport.studiesNew}
+          isToday={isToday}
+        />
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard
