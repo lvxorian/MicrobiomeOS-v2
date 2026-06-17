@@ -100,7 +100,10 @@ export function StudyCard({ study, className, onOpen }: StudyCardProps) {
 
       <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
         <span className="font-mono text-[10px] text-text3">
-          {study.journal} · {study.year}
+          {study.journal}
+          {study.publishedAt
+            ? ` · ${new Date(study.publishedAt).toLocaleDateString("cs-CZ", { day: "numeric", month: "numeric", year: "numeric" })}`
+            : ` · ${study.year}`}
         </span>
         <span className="font-mono text-[10px] text-teal flex items-center gap-1 group-hover:gap-1.5 transition-all">
           Zobrazit výtah <ArrowRight className="h-3 w-3" />

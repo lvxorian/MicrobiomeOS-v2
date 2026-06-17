@@ -1,10 +1,11 @@
 "use client";
 
-import { Search, Bell } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { NotificationsBell } from "./NotificationsBell";
 
 export function Topbar() {
   const [query, setQuery] = useState("");
@@ -34,10 +35,7 @@ export function Topbar() {
       </form>
 
       <div className="flex items-center gap-3">
-        <button className="relative rounded-md p-1.5 text-text3 hover:text-text hover:bg-card2 transition-colors">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber" />
-        </button>
+        <NotificationsBell />
         <Avatar className="h-7 w-7 border border-border">
           <AvatarFallback className="bg-bg3 text-teal text-[10px] font-mono font-medium">
             PR

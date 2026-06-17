@@ -19,7 +19,7 @@ export function SectionHeader({ eyebrow, title, description, className }: Sectio
         {title}
       </h2>
       {description && (
-        <p className="text-text-secondary text-sm mt-1 max-w-xl">{description}</p>
+        <p className="text-text-secondary text-sm mt-1 max-w-xl whitespace-pre-line">{description}</p>
       )}
     </div>
   );

@@ -75,6 +75,7 @@ export type RawStudy = {
   authors: string[];
   journal: string;
   year: number;
+  publishedAt?: string; // ISO 8601 — skutečné datum publikace
   pmid?: string;
   doi?: string;
   url?: string;
