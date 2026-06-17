@@ -4,6 +4,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Bioluminiscenční animace ── */
+@keyframes bio-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bio-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes bio-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+
+@keyframes bio-float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-6px) translateX(3px); opacity: 0.5; }
+  50% { transform: translateY(-3px) translateX(-2px); opacity: 0.4; }
+  75% { transform: translateY(-8px) translateX(4px); opacity: 0.2; }
+}
+
+.bio-shimmer {
+  background: linear-gradient(105deg, transparent 40%, rgba(0,212,170,0.025) 47%, rgba(0,212,170,0.04) 50%, rgba(0,212,170,0.025) 53%, transparent 60%);
+  background-size: 200% 100%;
+  animation: bio-shimmer 16s ease-in-out infinite;
+}
+
+.bio-pulse-dot {
+  animation: bio-pulse 6s ease-in-out infinite;
+}
+
+.bio-scan-line {
+  animation: bio-scan 20s linear infinite;
+}
+
+.bio-particle {
+  animation: bio-float 20s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     --background: #07090F;

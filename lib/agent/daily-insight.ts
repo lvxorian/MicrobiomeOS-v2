@@ -1,8 +1,10 @@
 import { deepseek } from "@/lib/deepseek";
 import { prisma } from "@/lib/db/prisma";
 
+type StudyRef = { title: string; plainSummary: string; evidenceScore: number; studyId: string };
+
 export async function generateDailyInsight(
-  newStudies: { title: string; plainSummary: string; evidenceScore: number }[],
+  newStudies: StudyRef[],
   totalScanned: number,
   newCount: number
 ): Promise<string> {
@@ -48,12 +50,10 @@ export async function saveDailyReport(
   insight: string,
   studiesCount: number,
   studiesNew: number,
-  keyFindings: string[]
+  keyFindings: { title: string; studyId: string }[]
 ) {
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
 
   await prisma.dailyReport.upsert({
     where: { date: dayStart },

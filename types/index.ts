@@ -67,6 +67,7 @@ export type ProcessedStudy = {
     note: string | null;
   }[];
   suggestedTags: string[];
+  titleCz: string; // český překlad názvu studie
 };
 
 export type RawStudy = {

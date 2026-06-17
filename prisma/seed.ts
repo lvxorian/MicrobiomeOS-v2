@@ -434,12 +434,12 @@ async function main() {
       summaryText:
         "Dnešní sken přinesl 47 studií, z toho 6 nových indexovaných. Nejvýznamnějším nálezem je potvrzení účinnosti pasteurizované Akkermansia muciniphila na inzulinovou rezistenci u diabetiků 2. typu — studie s EV 9,2 v Nature Medicine posiluje důkazy pro klinické využití cílené modulace mikrobioty. V oblasti osy střevo–mozek přibyla rozsáhlá kohortová studie identifikující mikrobiální signaturu deprese. Meta-analýza 47 RCT v Gut potvrzuje benefit probiotik u ulcerózní kolitidy, zatímco u Crohnovy choroby efekt zůstává neprůkazný. Celkově pozorujeme trend k personalizované mikrobiomové intervenci — od dietních vláken přes probiotika až po FMT — s důrazem na výchozí složení mikrobioty jako prediktor odpovědi.",
       keyFindingsJson: J([
-        "Akkermansia muciniphila a inzulinová rezistence — RCT, EV 9,2",
-        "Mikrobiální signatura deprese — kohorta 2 340 osob",
-        "Probiotika u IBD — meta-analýza 47 RCT, EV 9,5",
-        "Butyrát a Treg modulace — mechanistická studie",
-        "Vláknina a diverzita mikrobioty — RCT, EV 8,7",
-        "FMT u C. difficile — systematický přehled 12 400 pacientů, EV 8,9",
+        { title: "Akkermansia muciniphila a inzulinová rezistence — RCT, EV 9,2", studyId: sd("10.1038/s41591-024-02932-5").id },
+        { title: "Mikrobiální signatura deprese — kohorta 2 340 osob", studyId: sd("10.1016/j.chom.2024.05.007").id },
+        { title: "Probiotika u IBD — meta-analýza 47 RCT, EV 9,5", studyId: sd("10.1136/gutjnl-2024-328975").id },
+        { title: "Butyrát a Treg modulace — mechanistická studie", studyId: sd("10.1101/2024.06.12.598765").id },
+        { title: "Vláknina a diverzita mikrobioty — RCT, EV 8,7", studyId: sd("10.1038/s41586-023-06950-2").id },
+        { title: "FMT u C. difficile — systematický přehled 12 400 pacientů, EV 8,9", studyId: sd("10.1016/S2468-1253(23)00345-X").id },
       ]),
       studiesCount: 47,
       studiesNew: 6,

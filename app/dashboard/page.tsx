@@ -19,10 +19,16 @@ export default async function DashboardPage() {
     ? new Date(dailyReport.date).toDateString() === new Date().toDateString()
     : false;
 
-  let keyFindings: string[] = [];
+  let keyFindings: { title: string; studyId?: string }[] = [];
   if (dailyReport) {
     try {
-      keyFindings = JSON.parse(dailyReport.keyFindingsJson);
+      const parsed = JSON.parse(dailyReport.keyFindingsJson);
+      // Podpora obou formátů: starý string[] i nový {title, studyId}[]
+      if (Array.isArray(parsed)) {
+        keyFindings = parsed.map((item: string | { title: string; studyId?: string }) =>
+          typeof item === "string" ? { title: item } : item
+        );
+      }
     } catch {
       keyFindings = [];
     }

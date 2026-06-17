@@ -91,7 +91,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
     let totalFound = 0;
     let totalNew = 0;
     let totalAlerts = 0;
-    const newStudiesForInsight: { title: string; plainSummary: string; evidenceScore: number }[] = [];
+    const newStudiesForInsight: { title: string; plainSummary: string; evidenceScore: number; studyId: string }[] = [];
 
     for (const src of sourcesToRun) {
       await logLine(runId, "FETCH", `${src.name}: hledání posledních studií...`);
@@ -139,7 +139,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           // Save study
           const study = await prisma.study.create({
             data: {
-              title: raw.title,
+              title: processed.titleCz || raw.title,
               authors: JSON.stringify(raw.authors),
               journal: raw.journal,
               year: raw.year,
@@ -164,20 +164,34 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             },
           });
 
-          // Upsert taxa
+          // Upsert taxa (každý taxon zvlášť, jeden špatný nezabije celou studii)
           for (const t of processed.taxa) {
-            const color = PHYLUM_COLORS[t.phylum] || "#36B8F5";
-            const taxon = await upsertTaxon(t.name, t.genus, t.species, t.phylum, color);
+            try {
+              // Normalizace: pokud chybí genus, použij name
+              const taxonName = t.name?.trim() || "";
+              const taxonGenus = t.genus?.trim() || taxonName;
+              const taxonPhylum = t.phylum?.trim() || "Firmicutes";
 
-            await prisma.studyTaxon.create({
-              data: {
-                studyId: study.id,
-                taxonId: taxon.id,
-                direction: t.direction,
-                magnitude: t.magnitude,
-                note: t.note,
-              },
-            });
+              if (!taxonName) {
+                await logLine(runId, "ERROR", `Taxon přeskočen — prázdný název`);
+                continue;
+              }
+
+              const color = PHYLUM_COLORS[taxonPhylum] || "#36B8F5";
+              const taxon = await upsertTaxon(taxonName, taxonGenus, t.species || null, taxonPhylum, color);
+
+              await prisma.studyTaxon.create({
+                data: {
+                  studyId: study.id,
+                  taxonId: taxon.id,
+                  direction: t.direction,
+                  magnitude: t.magnitude,
+                  note: t.note,
+                },
+              });
+            } catch (taxonErr) {
+              await logLine(runId, "ERROR", `Taxon ${t.name || "?"} selhal: ${(taxonErr as Error).message.slice(0, 100)}`);
+            }
           }
 
           // Connect tags
@@ -198,6 +212,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             title: raw.title,
             plainSummary: processed.plainSummary,
             evidenceScore: score,
+            studyId: study.id,
           });
           await logLine(runId, "STORE", `Uloženo: ${raw.title.slice(0, 60)}${raw.doi ? ` (DOI: ${raw.doi})` : ""}`);
 
@@ -230,7 +245,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
       await logLine(runId, "INFO", "Generuji Daily Insight...");
       try {
         const insight = await generateDailyInsight(newStudiesForInsight, totalFound, totalNew);
-        const keyFindings = newStudiesForInsight.map((s) => s.title);
+        const keyFindings = newStudiesForInsight.map((s) => ({ title: s.title, studyId: s.studyId }));
         await saveDailyReport(new Date(), insight, totalFound, totalNew, keyFindings);
         await logLine(runId, "INFO", "Daily Insight uložen");
       } catch (insightErr) {

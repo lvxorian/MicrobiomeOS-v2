@@ -26,6 +26,7 @@ ALWAYS respond with ONLY valid JSON, no markdown, no preamble.
 
 Return this exact structure:
 {
+  "titleCz": "Czech translation of the original English title. Keep scientific precision, translate naturally for a Czech medical doctor.",
   "plainSummary": "2-3 sentences explaining this study in plain Czech for a clinician. What was studied, what was found, why it matters. No jargon.",
   "keyFindings": [
     {

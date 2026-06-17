@@ -95,8 +95,11 @@ export function AgentMonitor() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [logLines]);
+    // Auto-scroll pouze během aktivního runu, ne při prvním načtení stránky
+    if (logLines.length > 0 && status === "RUNNING") {
+      logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logLines, status]);
 
   const handleRun = async () => {
     setLoading(true);
