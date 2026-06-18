@@ -10,11 +10,11 @@ import { generateDailyInsight, saveDailyReport } from "./daily-insight";
 import type { RawStudy } from "@/types";
 
 const SOURCES = [
-  { key: "PUBMED", name: "PubMed", fetch: fetchPubMed },
-  { key: "NATURE", name: "Nature", fetch: fetchNature },
   { key: "CELL", name: "Cell Host & Microbe", fetch: fetchCell },
-  { key: "BIORXIV", name: "bioRxiv", fetch: fetchBiorxiv },
   { key: "GUT_BMJ", name: "Gut (BMJ)", fetch: fetchGutBMJ },
+  { key: "BIORXIV", name: "bioRxiv", fetch: fetchBiorxiv },
+  { key: "NATURE", name: "Nature", fetch: fetchNature },
+  { key: "PUBMED", name: "PubMed", fetch: fetchPubMed },
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -128,7 +128,10 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             select: { id: true },
           }));
         }
-        if (exists) continue;
+        if (exists) {
+          // Duplicitní — přeskočit
+          continue;
+        }
 
         try {
           await logLine(runId, "PARSE", `Zpracování: ${String(raw.title).slice(0, 60)}...`);

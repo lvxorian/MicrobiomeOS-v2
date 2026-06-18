@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCollections } from "@/lib/db/queries";
+
+export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth";
 
 export async function GET() {

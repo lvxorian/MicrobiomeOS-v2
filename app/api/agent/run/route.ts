@@ -4,6 +4,8 @@ import { runAgent } from "@/lib/agent";
 import { getAgentRuns } from "@/lib/db/queries";
 import { getNextRun } from "@/lib/agent/scheduler";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   // Vytvořit záznam runu napřed, abychom měli runId hned
   const run = await prisma.agentRun.create({

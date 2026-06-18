@@ -1,51 +1,74 @@
 import axios from "axios";
-import { load } from "cheerio";
+import { parseStringPromise } from "xml2js";
 import type { RawStudy } from "@/types";
 
-function resolveUrl(base: string, href: string | undefined): string {
-  if (!href) return base;
-  if (href.startsWith("http://") || href.startsWith("https://")) return href;
-  return base + (href.startsWith("/") ? "" : "/") + href;
+// Gut (BMJ) — přes PubMed API (spolehlivější než scraping gut.bmj.com)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function text(val: any): string {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object" && typeof val._ === "string") return val._;
+  return "";
 }
 
-function extractDoi(href: string | undefined): string | null {
-  if (!href) return null;
-  const doiMatch = href.match(/10\.\d{4,}\/[^\s?#]+/);
-  return doiMatch ? doiMatch[0] : null;
-}
+const PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 export async function fetchGutBMJ(): Promise<RawStudy[]> {
   try {
-    const res = await axios.get(
-      "https://gut.bmj.com/search/microbiome%20jcode%3Agutjnl%20numresults%3A20%20sort%3Apublication-date%20direction%3Adescending",
-      { timeout: 15000, headers: { "User-Agent": "MicrobiomeOS/1.0" } }
-    );
-    const $ = load(res.data);
-    const studies: RawStudy[] = [];
+    // Search PubMed for Gut journal
+    const searchRes = await axios.get(`${PUBMED_BASE}/esearch.fcgi`, {
+      params: {
+        db: "pubmed",
+        term: 'microbiome AND "Gut"[Journal]',
+        reldate: 7,
+        datetype: "pdat",
+        retmax: 30,
+        retmode: "json",
+        sort: "date",
+      },
+      timeout: 15000,
+    });
 
-    $(".search-result").each((_, el) => {
-      const title = $(el).find(".article-title a").text().trim();
-      if (!title) return;
-      const href = $(el).find(".article-title a").attr("href");
-      const doi = extractDoi(href);
-      const yearText = $(el).find(".publication-year").text().trim();
-      const year = parseInt(yearText) || new Date().getFullYear();
+    const idList: string[] = searchRes.data?.esearchresult?.idlist || [];
+    if (idList.length === 0) return [];
 
-      studies.push({
+    const fetchRes = await axios.get(`${PUBMED_BASE}/efetch.fcgi`, {
+      params: {
+        db: "pubmed",
+        id: idList.join(","),
+        rettype: "xml",
+        retmode: "xml",
+      },
+      timeout: 30000,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = (await parseStringPromise(fetchRes.data)) as any;
+    const articles = parsed?.PubmedArticleSet?.PubmedArticle || [];
+
+    return articles.map((article: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const a = article.MedlineCitation?.[0];
+      const art = a?.Article?.[0];
+      const title = text(art?.ArticleTitle?.[0]) || "Neznámý název";
+      const abstract = (art?.Abstract?.[0]?.AbstractText || []).map(text).join(" ") || "Abstrakt není k dispozici";
+      const pmid = text(a?.PMID?.[0]) || a?.PMID?.[0]?._ || "";
+      const doi = art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._ || null;  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const dateObj = a?.DateCompleted?.[0] || art?.ArticleDate?.[0];
+      const pubYear = parseInt(text(dateObj?.Year?.[0]) || String(new Date().getFullYear()));
+
+      return {
         title,
-        abstract: "Abstrakt bude doplněn po stažení plného textu.",
-        authors: [],
+        abstract,
+        authors: ["Gut"],
         journal: "Gut",
-        year,
-        doi: doi || undefined,
-        url: resolveUrl("https://gut.bmj.com", href),
+        year: pubYear,
+        pmid: String(pmid),
+        doi: typeof doi === "string" ? doi : undefined,
+        url: doi ? `https://doi.org/${doi}` : `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
         source: "GUT_BMJ" as const,
         isPeerReviewed: true,
         isPreprint: false,
-      });
+      };
     });
-
-    return studies.slice(0, 10);
   } catch (err) {
     console.error("[Gut BMJ] Chyba:", (err as Error).message);
     return [];
