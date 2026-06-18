@@ -19,15 +19,6 @@ const SOURCES = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function sleepWithAbort(runId: string, ms: number): Promise<boolean> {
-  const step = 100;
-  for (let i = 0; i < ms; i += step) {
-    await sleep(Math.min(step, ms - i));
-    if (await checkAbort(runId)) return true;
-  }
-  return false;
-}
-
 async function checkAbort(runId: string): Promise<boolean> {
   try {
     const run = await prisma.agentRun.findUnique({
@@ -201,7 +192,12 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           await logLine(runId, "PARSE", `Zpracování: ${String(raw.title).slice(0, 60)}...`);
 
           const processed = await processStudyWithLLM(raw);
-          if (await sleepWithAbort(runId, 500)) {
+          await sleep(500); // Rate limit
+
+          const finalTitle = processed.titleCz || raw.title;
+          await logLine(runId, "LLM", `LLM OK — titulek: ${String(finalTitle).slice(0, 80)}`);
+
+          if (await checkAbort(runId)) {
             await logLine(runId, "INFO", "Sken přerušen uživatelem");
             await prisma.agentRun.update({
               where: { id: runId },
@@ -210,15 +206,16 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             return;
           }
 
-          const finalTitle = processed.titleCz || raw.title;
-
           // Druhý dedup check — přeložený titulek může kolidovat s dříve uloženým
           if (finalTitle !== raw.title) {
             const dup = await prisma.study.findFirst({
               where: { title: finalTitle, journal: raw.journal, year: raw.year },
               select: { id: true },
             });
-            if (dup) continue;
+            if (dup) {
+              await logLine(runId, "INFO", `Duplicitní (přeložený titulek) — přeskakuji`);
+              continue;
+            }
           }
 
           const score = scoreEvidence(processed, {
@@ -259,7 +256,9 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           } catch (createErr: unknown) {
             // P2002 = unique constraint violation → duplikát (race condition)
             if (createErr && typeof createErr === "object" && "code" in createErr && (createErr as { code: string }).code === "P2002") {
-              await logLine(runId, "INFO", `Duplicitní studie (unique constraint) — přeskakuji`);
+              const meta = (createErr as { meta?: { target?: string[] } }).meta;
+              const fields = meta?.target?.join(", ") || "unknown";
+              await logLine(runId, "INFO", `Duplicitní studie (unique constraint na [${fields}]) — přeskakuji`);
               continue;
             }
             throw createErr; // jiná chyba → propadne do vnějšího catch
@@ -324,7 +323,8 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             await logLine(runId, "ALERT", `${fired} upozornění aktivováno`);
           }
         } catch (err) {
-          await logLine(runId, "ERROR", `Chyba zpracování: ${(err as Error).message}`);
+          const msg = (err as Error).message || String(err);
+          await logLine(runId, "ERROR", `Chyba zpracování: ${msg}`);
         }
       }
     }
