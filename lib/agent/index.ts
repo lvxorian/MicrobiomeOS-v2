@@ -19,6 +19,15 @@ const SOURCES = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function sleepWithAbort(runId: string, ms: number): Promise<boolean> {
+  const step = 100;
+  for (let i = 0; i < ms; i += step) {
+    await sleep(Math.min(step, ms - i));
+    if (await checkAbort(runId)) return true;
+  }
+  return false;
+}
+
 async function checkAbort(runId: string): Promise<boolean> {
   try {
     const run = await prisma.agentRun.findUnique({
@@ -192,9 +201,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           await logLine(runId, "PARSE", `Zpracování: ${String(raw.title).slice(0, 60)}...`);
 
           const processed = await processStudyWithLLM(raw);
-          await sleep(500); // Rate limit
-
-          if (await checkAbort(runId)) {
+          if (await sleepWithAbort(runId, 500)) {
             await logLine(runId, "INFO", "Sken přerušen uživatelem");
             await prisma.agentRun.update({
               where: { id: runId },
