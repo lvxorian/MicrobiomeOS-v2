@@ -113,6 +113,7 @@ export function AgentMonitor() {
     setLoading(true);
     setLogLines([]);
     setStatus("RUNNING");
+    playScanStart();
     setStats({ studiesFound: 0, studiesNew: 0, alertsFired: 0 });
     setErrorMsg(null);
     playedRef.current = null; // reset for new run
@@ -123,7 +124,6 @@ export function AgentMonitor() {
         setRunId(data.runId);
         setStartedAt(new Date().toISOString());
         startPolling(data.runId);
-        playScanStart();
       }
     } catch {
       setStatus("FAILED");
