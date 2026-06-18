@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Loader2 } from "lucide-react";
+import { Play, Loader2, Square } from "lucide-react";
 import type { LogLine } from "@/types";
 import { cn } from "@/lib/utils";
 import { DNALoader } from "./DNALoader";
@@ -52,13 +52,13 @@ export function AgentMonitor() {
       setErrorMsg(data.errorMsg || null);
       if (data.startedAt) setStartedAt(data.startedAt);
 
-      if (data.status === "SUCCESS" || data.status === "FAILED") {
+      if (data.status === "SUCCESS" || data.status === "FAILED" || data.status === "CANCELLED") {
         stopPolling();
         sessionStorage.removeItem("agentRunId");
-        // Play completion sound once
         if (playedRef.current !== data.status) {
           playedRef.current = data.status;
           if (data.status === "SUCCESS") playScanComplete();
+          else if (data.status === "CANCELLED") playScanError();
           else playScanError();
         }
       }
@@ -142,6 +142,14 @@ export function AgentMonitor() {
     return new Date(next.getTime() + pragueOffset).toISOString();
   })();
 
+  const handleStop = async () => {
+    try {
+      await fetch("/api/agent/run/abort", { method: "POST" });
+    } catch {
+      // ignore
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -166,6 +174,15 @@ export function AgentMonitor() {
             )}
             {loading ? "Spouštím..." : status === "RUNNING" ? "Běží..." : "Spustit nyní"}
           </button>
+          {status === "RUNNING" && (
+            <button
+              onClick={handleStop}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red/10 border border-red/20 text-red font-mono text-[10px] font-medium hover:bg-red/20 transition-colors"
+            >
+              <Square className="h-3 w-3" />
+              Zastavit
+            </button>
+          )}
         </div>
       </div>
 
@@ -173,15 +190,15 @@ export function AgentMonitor() {
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-4 px-4 py-2.5 border-b border-border bg-bg3/50">
           <div className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "h-2 w-2 rounded-full",
-                status === "RUNNING" ? "bg-teal animate-pulse" : status === "SUCCESS" ? "bg-teal" : status === "FAILED" ? "bg-red" : "bg-text3"
-              )}
-            />
-            <span className="font-mono text-[10px] uppercase tracking-[1px] text-text-secondary">
-              {status === "RUNNING" ? "Aktivní" : status === "SUCCESS" ? "Dokončeno" : status === "FAILED" ? "Chyba" : "Nečinný"}
-            </span>
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full",
+                  status === "RUNNING" ? "bg-teal animate-pulse" : status === "SUCCESS" ? "bg-teal" : status === "CANCELLED" ? "bg-amber" : status === "FAILED" ? "bg-red" : "bg-text3"
+                )}
+              />
+              <span className="font-mono text-[10px] uppercase tracking-[1px] text-text-secondary">
+                {status === "RUNNING" ? "Aktivní" : status === "SUCCESS" ? "Dokončeno" : status === "CANCELLED" ? "Zrušeno" : status === "FAILED" ? "Chyba" : "Nečinný"}
+              </span>
           </div>
           {startedAt && (
             <span className="font-mono text-[10px] text-text3">

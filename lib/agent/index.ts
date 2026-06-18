@@ -19,6 +19,18 @@ const SOURCES = [
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+async function checkAbort(runId: string): Promise<boolean> {
+  try {
+    const run = await prisma.agentRun.findUnique({
+      where: { id: runId },
+      select: { abortRequested: true },
+    });
+    return run?.abortRequested === true;
+  } catch {
+    return false;
+  }
+}
+
 async function logLine(runId: string, type: string, message: string) {
   try {
     const current = await prisma.agentRun.findUnique({ where: { id: runId }, select: { logLines: true } });
@@ -91,15 +103,25 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
     if (!existingRunId) {
       const alreadyRunning = await prisma.agentRun.findFirst({
         where: { status: "RUNNING", id: { not: runId } },
-        select: { id: true },
+        select: { id: true, startedAt: true },
       });
       if (alreadyRunning) {
-        await logLine(runId, "ERROR", "Agent již běží — nový run nelze spustit, dokud aktuální neskončí.");
-        await prisma.agentRun.update({
-          where: { id: runId },
-          data: { status: "FAILED", finishedAt: new Date(), errorMsg: "Agent již běží — konkurentní run" },
-        });
-        return;
+        // Zombie run — běží déle než 30 minut → pravděpodobně spadl
+        const ageMs = Date.now() - new Date(alreadyRunning.startedAt).getTime();
+        if (ageMs > 30 * 60 * 1000) {
+          await logLine(runId, "INFO", `Nalezen zombie run (${Math.round(ageMs / 60000)} min) — označuji jako FAILED`);
+          await prisma.agentRun.update({
+            where: { id: alreadyRunning.id },
+            data: { status: "FAILED", finishedAt: new Date(), errorMsg: "Timeout — běžel déle než 30 minut" },
+          });
+        } else {
+          await logLine(runId, "ERROR", "Agent již běží — nový run nelze spustit, dokud aktuální neskončí.");
+          await prisma.agentRun.update({
+            where: { id: runId },
+            data: { status: "FAILED", finishedAt: new Date(), errorMsg: "Agent již běží — konkurentní run" },
+          });
+          return;
+        }
       }
     }
 
@@ -110,6 +132,14 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
     const newStudiesForInsight: { title: string; plainSummary: string; evidenceScore: number; studyId: string }[] = [];
 
     for (const src of sourcesToRun) {
+      if (await checkAbort(runId)) {
+        await logLine(runId, "INFO", "Sken přerušen uživatelem");
+        await prisma.agentRun.update({
+          where: { id: runId },
+          data: { status: "CANCELLED", finishedAt: new Date() },
+        });
+        return;
+      }
       await logLine(runId, "FETCH", `${src.name}: hledání posledních studií...`);
 
       let rawStudies: RawStudy[] = [];
@@ -124,6 +154,15 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
       totalFound += rawStudies.length;
 
       for (const raw of rawStudies) {
+        if (await checkAbort(runId)) {
+          await logLine(runId, "INFO", "Sken přerušen uživatelem");
+          await prisma.agentRun.update({
+            where: { id: runId },
+            data: { status: "CANCELLED", finishedAt: new Date() },
+          });
+          return;
+        }
+
         // Bezpečnostní kontrola — title musí být string
         if (!raw.title || typeof raw.title !== "string") {
           await logLine(runId, "ERROR", `Přeskakuji studii s nevalidním názvem (typ: ${typeof raw.title})`);
@@ -154,6 +193,15 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
 
           const processed = await processStudyWithLLM(raw);
           await sleep(500); // Rate limit
+
+          if (await checkAbort(runId)) {
+            await logLine(runId, "INFO", "Sken přerušen uživatelem");
+            await prisma.agentRun.update({
+              where: { id: runId },
+              data: { status: "CANCELLED", finishedAt: new Date() },
+            });
+            return;
+          }
 
           const score = scoreEvidence(processed, {
             journal: raw.journal,
