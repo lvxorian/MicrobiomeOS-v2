@@ -37,7 +37,7 @@ MicrobiomeOS je SaaS platforma pro výzkumníky mikrobiomu. Agent denně prohled
 - Anti-halucinace: striktní prompt (teplota 0.1), post-processing validace taxonů proti abstraktu
 - Evidence scoring: design + sample size + WGS + human + peer review + journal prestige (0–10)
 - Deduplikace: DOI → PMID → title+journal+year
-- node-cron scheduler: denně v 06:00 SELČ (Europe/Prague)
+- node-cron scheduler: denně v 05:00 SELČ (Europe/Prague)
 - Daily Insight: po každém runu generuje expertní odstavec (DeepSeek, "Petr Ryšávka level")
 - Live polling: AgentMonitor komponenta s sessionStorage pro background processing
 

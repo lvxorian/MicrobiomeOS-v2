@@ -11,7 +11,7 @@ export function AgentStatus() {
       <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-text-secondary">
         Agent běží
       </span>
-      <span className="ml-auto font-mono text-[10px] text-text3">06:00</span>
+      <span className="ml-auto font-mono text-[10px] text-text3">05:00</span>
     </div>
   );
 }

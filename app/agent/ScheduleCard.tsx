@@ -28,7 +28,7 @@ export function ScheduleCard({ name, query, status = "ok" }: ScheduleCardProps) 
       </span>
       <div className="flex items-center justify-between">
         <span className="font-mono text-[9px] text-text3 uppercase tracking-[1px]">
-          denně · 06:00
+          denně · 05:00
         </span>
         <span className="font-mono text-[9px] text-teal">{status}</span>
       </div>

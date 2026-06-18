@@ -7,7 +7,7 @@ export function startScheduler() {
   if (job) return;
 
   job = schedule(
-    "0 6 * * *",
+    "0 5 * * *",
     async () => {
       console.log("[Agent] Spouštím plánovaný denní sken...");
       await runAgent();
@@ -15,7 +15,7 @@ export function startScheduler() {
     { timezone: "Europe/Prague" }
   );
 
-  console.log("[Agent] CRON scheduler spuštěn — každý den v 06:00");
+  console.log("[Agent] CRON scheduler spuštěn — každý den v 05:00");
 }
 
 export function stopScheduler() {
@@ -33,9 +33,9 @@ export function getNextRun(): string {
   const pragueNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Prague" }));
   const pragueOffset = pragueNow.getTime() - now.getTime();
 
-  // Najdi next 06:00 v Praze
+  // Najdi next 05:00 v Praze
   const next = new Date(now.getTime() - pragueOffset); // převeď na "Pražský" časový základ
-  next.setHours(6, 0, 0, 0);
+  next.setHours(5, 0, 0, 0);
   if (next.getTime() + pragueOffset <= now.getTime()) {
     next.setDate(next.getDate() + 1);
   }

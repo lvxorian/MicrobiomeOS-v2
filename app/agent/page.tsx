@@ -24,7 +24,7 @@ export default async function AgentPage() {
       <SectionHeader
         eyebrow="Monitor agenta"
         title="Monitor agenta"
-        description={"Automatická indexace studií z PubMed, Nature, Cell, bioRxiv a Gut.\nAgent běží denně v 06:00."}
+        description={"Automatická indexace studií z PubMed, Nature, Cell, bioRxiv a Gut.\nAgent běží denně v 05:00."}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

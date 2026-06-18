@@ -137,7 +137,7 @@ export function AgentMonitor() {
     const pragueNow = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Prague" }));
     const pragueOffset = pragueNow.getTime() - now.getTime();
     const next = new Date(now.getTime() - pragueOffset);
-    next.setHours(6, 0, 0, 0);
+    next.setHours(5, 0, 0, 0);
     if (next.getTime() + pragueOffset <= now.getTime()) next.setDate(next.getDate() + 1);
     return new Date(next.getTime() + pragueOffset).toISOString();
   })();
