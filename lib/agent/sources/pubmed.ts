@@ -14,13 +14,13 @@ const PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 export async function fetchPubMed(): Promise<RawStudy[]> {
   try {
-    // 1. Search for recent microbiome studies (poslední 2 dny)
+    // 1. Search for recent microbiome studies (pouze včerejší)
     const searchUrl = `${PUBMED_BASE}/esearch.fcgi`;
     const searchRes = await axios.get(searchUrl, {
       params: {
         db: "pubmed",
         term: "microbiome[Title/Abstract]",
-        reldate: 2,           // poslední 2 dny
+        reldate: 1,           // pouze včerejší studie
         datetype: "pdat",     // podle data publikace
         retmax: 50,
         retmode: "json",

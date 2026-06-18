@@ -18,7 +18,7 @@ export async function fetchBiorxiv(): Promise<RawStudy[]> {
       params: {
         db: "pubmed",
         term: 'microbiome AND ("bioRxiv"[Journal] OR preprint[ptyp])',
-        reldate: 14,
+        reldate: 1,
         datetype: "pdat",
         retmax: 20,
         retmode: "json",
@@ -53,6 +53,9 @@ export async function fetchBiorxiv(): Promise<RawStudy[]> {
       const doi = art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._ || null;  // eslint-disable-line @typescript-eslint/no-explicit-any
       const dateObj = a?.DateCompleted?.[0] || art?.ArticleDate?.[0];
       const pubYear = parseInt(text(dateObj?.Year?.[0]) || String(new Date().getFullYear()));
+      const pubMonth = parseInt(text(dateObj?.Month?.[0]) || "1");
+      const pubDay = parseInt(text(dateObj?.Day?.[0]) || "1");
+      const publishedAt = new Date(Date.UTC(pubYear, pubMonth - 1, pubDay)).toISOString();
 
       return {
         title,
@@ -60,6 +63,7 @@ export async function fetchBiorxiv(): Promise<RawStudy[]> {
         authors: ["bioRxiv"],
         journal: "bioRxiv",
         year: pubYear,
+        publishedAt,
         isPeerReviewed: false,
         isPreprint: true,
         pmid: String(pmid),

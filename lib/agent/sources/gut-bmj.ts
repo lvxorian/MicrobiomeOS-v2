@@ -19,7 +19,7 @@ export async function fetchGutBMJ(): Promise<RawStudy[]> {
       params: {
         db: "pubmed",
         term: 'microbiome AND "Gut"[Journal]',
-        reldate: 7,
+        reldate: 1,
         datetype: "pdat",
         retmax: 30,
         retmode: "json",
@@ -54,6 +54,9 @@ export async function fetchGutBMJ(): Promise<RawStudy[]> {
       const doi = art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._ || null;  // eslint-disable-line @typescript-eslint/no-explicit-any
       const dateObj = a?.DateCompleted?.[0] || art?.ArticleDate?.[0];
       const pubYear = parseInt(text(dateObj?.Year?.[0]) || String(new Date().getFullYear()));
+      const pubMonth = parseInt(text(dateObj?.Month?.[0]) || "1");
+      const pubDay = parseInt(text(dateObj?.Day?.[0]) || "1");
+      const publishedAt = new Date(Date.UTC(pubYear, pubMonth - 1, pubDay)).toISOString();
 
       return {
         title,
@@ -61,6 +64,7 @@ export async function fetchGutBMJ(): Promise<RawStudy[]> {
         authors: ["Gut"],
         journal: "Gut",
         year: pubYear,
+        publishedAt,
         pmid: String(pmid),
         doi: typeof doi === "string" ? doi : undefined,
         url: doi ? `https://doi.org/${doi}` : `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,

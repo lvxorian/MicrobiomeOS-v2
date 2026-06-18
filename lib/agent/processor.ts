@@ -1,6 +1,10 @@
 import { deepseek } from "@/lib/deepseek";
 import type { ProcessedStudy, RawStudy } from "@/types";
 
+function stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, "");
+}
+
 export const PROCESSOR_SYSTEM_PROMPT = `
 IMPORTANT: All text fields in your JSON response must be written in Czech language.
 This includes: plainSummary, keyFindings[].text, limitations, clinicalRelevance.
@@ -118,6 +122,15 @@ DOI: ${raw.doi || "not provided"}
   }
 
   result.taxa = validatedTaxa;
+
+  // Strip HTML tags from all text fields (LLM sometimes returns <strong>, <em>, etc.)
+  result.plainSummary = stripHtml(result.plainSummary || "");
+  result.limitations = stripHtml(result.limitations || "");
+  result.clinicalRelevance = result.clinicalRelevance ? stripHtml(result.clinicalRelevance) : null;
+  result.keyFindings = (result.keyFindings || []).map((f) => ({
+    ...f,
+    text: stripHtml(f.text || ""),
+  }));
 
   return result;
 }

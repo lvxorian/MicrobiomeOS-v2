@@ -204,7 +204,7 @@ export function AgentMonitor() {
               <span className={cn("shrink-0 uppercase tracking-[0.5px] text-[10px]", TYPE_COLORS[line.type] || "text-text3")}>
                 {line.type}
               </span>
-              <span className="text-text-secondary truncate">{line.message}</span>
+              <span className="text-text-secondary break-all">{line.message}</span>
             </div>
           ))}
           {status === "RUNNING" && logLines.length > 0 && (
