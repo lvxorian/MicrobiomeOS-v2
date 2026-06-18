@@ -5,6 +5,7 @@ import { Play, Loader2 } from "lucide-react";
 import type { LogLine } from "@/types";
 import { cn } from "@/lib/utils";
 import { DNALoader } from "./DNALoader";
+import { playScanStart, playScanComplete, playScanError } from "@/lib/audio";
 
 const TYPE_COLORS: Record<string, string> = {
   INFO: "text-text3",
@@ -25,6 +26,7 @@ export function AgentMonitor() {
   const [startedAt, setStartedAt] = useState<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const playedRef = useRef<string | null>(null); // track which sound was played
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -53,6 +55,12 @@ export function AgentMonitor() {
       if (data.status === "SUCCESS" || data.status === "FAILED") {
         stopPolling();
         sessionStorage.removeItem("agentRunId");
+        // Play completion sound once
+        if (playedRef.current !== data.status) {
+          playedRef.current = data.status;
+          if (data.status === "SUCCESS") playScanComplete();
+          else playScanError();
+        }
       }
       return true;
     } catch {
@@ -107,6 +115,7 @@ export function AgentMonitor() {
     setStatus("RUNNING");
     setStats({ studiesFound: 0, studiesNew: 0, alertsFired: 0 });
     setErrorMsg(null);
+    playedRef.current = null; // reset for new run
     try {
       const res = await fetch("/api/agent/run", { method: "POST" });
       const data = await res.json();
@@ -114,6 +123,7 @@ export function AgentMonitor() {
         setRunId(data.runId);
         setStartedAt(new Date().toISOString());
         startPolling(data.runId);
+        playScanStart();
       }
     } catch {
       setStatus("FAILED");
