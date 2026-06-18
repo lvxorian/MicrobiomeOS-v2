@@ -20,17 +20,17 @@ const SOURCES = [
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function logLine(runId: string, type: string, message: string) {
-  await prisma.agentRun.update({
-    where: { id: runId },
-    data: {
-      logLines: JSON.stringify([
-        ...JSON.parse(
-          (await prisma.agentRun.findUnique({ where: { id: runId }, select: { logLines: true } }))?.logLines || "[]"
-        ),
-        { timestamp: new Date().toISOString(), type, message },
-      ]),
-    },
-  });
+  try {
+    const current = await prisma.agentRun.findUnique({ where: { id: runId }, select: { logLines: true } });
+    const parsed: unknown[] = JSON.parse(current?.logLines || "[]");
+    parsed.push({ timestamp: new Date().toISOString(), type, message });
+    await prisma.agentRun.update({
+      where: { id: runId },
+      data: { logLines: JSON.stringify(parsed) },
+    });
+  } catch {
+    // Ignorovat chyby logování — nezastaví běh agenta
+  }
 }
 
 async function matchAlerts(studyId: string) {
@@ -86,6 +86,22 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
 
   try {
     await logLine(runId, "INFO", "Agent spuštěn — zahajuji denní sken");
+
+    // Konkurentní run guard — zabraňuje přepsání logů a duplicitním studiím
+    if (!existingRunId) {
+      const alreadyRunning = await prisma.agentRun.findFirst({
+        where: { status: "RUNNING", id: { not: runId } },
+        select: { id: true },
+      });
+      if (alreadyRunning) {
+        await logLine(runId, "ERROR", "Agent již běží — nový run nelze spustit, dokud aktuální neskončí.");
+        await prisma.agentRun.update({
+          where: { id: runId },
+          data: { status: "FAILED", finishedAt: new Date(), errorMsg: "Agent již běží — konkurentní run" },
+        });
+        return;
+      }
+    }
 
     const sourcesToRun = sourceKey ? SOURCES.filter((s) => s.key === sourceKey) : SOURCES;
     let totalFound = 0;

@@ -14,7 +14,10 @@ export async function PATCH(
       data: { seen: body.seen === true },
     });
     return NextResponse.json(match);
-  } catch {
-    return NextResponse.json({ error: "Shoda nenalezena" }, { status: 404 });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      return NextResponse.json({ error: "Shoda nenalezena" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Chyba při aktualizaci shody" }, { status: 500 });
   }
 }

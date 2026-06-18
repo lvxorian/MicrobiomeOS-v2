@@ -6,6 +6,8 @@ import { getStudiesCount, getTaxaCount, getAverageEvidenceScore, getStudiesList 
 import { getLatestDailyReport } from "@/lib/db/daily-report-queries";
 import { Microscope, Share2, TrendingUp, Database } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const [studiesCount, taxaCount, avgScore, highEvidence, dailyReport] = await Promise.all([
     getStudiesCount(),

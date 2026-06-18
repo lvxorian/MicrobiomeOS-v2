@@ -3,6 +3,8 @@ import { SectionHeader } from "@/components/shared/SectionHeader";
 import { ScheduleCard } from "./ScheduleCard";
 import { AgentMonitor } from "./AgentMonitor";
 
+export const dynamic = "force-dynamic";
+
 const SOURCES = [
   { key: "PUBMED", name: "PubMed", query: "microbiome[Title/Abstract]" },
   { key: "NATURE", name: "Nature", query: "microbiome + posledních 7 dní" },

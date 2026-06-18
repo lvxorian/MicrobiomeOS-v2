@@ -7,19 +7,25 @@ import { getNextRun } from "@/lib/agent/scheduler";
 export const dynamic = "force-dynamic";
 
 export async function POST() {
-  // Vytvořit záznam runu napřed, abychom měli runId hned
-  const run = await prisma.agentRun.create({
-    data: { status: "RUNNING", logLines: "[]", studiesFound: 0, studiesNew: 0, alertsFired: 0 },
-  });
+  try {
+    const run = await prisma.agentRun.create({
+      data: { status: "RUNNING", logLines: "[]", studiesFound: 0, studiesNew: 0, alertsFired: 0 },
+    });
 
-  // Spustit agenta asynchronně s existujícím runId
-  runAgent(undefined, run.id).catch(console.error);
+    runAgent(undefined, run.id).catch(console.error);
 
-  return NextResponse.json({ runId: run.id });
+    return NextResponse.json({ runId: run.id });
+  } catch {
+    return NextResponse.json({ error: "Chyba při spouštění agenta" }, { status: 500 });
+  }
 }
 
 export async function GET() {
-  const runs = await getAgentRuns(5);
-  const nextRun = getNextRun();
-  return NextResponse.json({ runs, nextRun, active: true });
+  try {
+    const runs = await getAgentRuns(5);
+    const nextRun = getNextRun();
+    return NextResponse.json({ runs, nextRun, active: true });
+  } catch {
+    return NextResponse.json({ error: "Chyba při načítání historie agenta" }, { status: 500 });
+  }
 }

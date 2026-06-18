@@ -7,9 +7,13 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const run = await prisma.agentRun.findUnique({ where: { id: params.id } });
-  if (!run) {
-    return NextResponse.json({ error: "Run nenalezen" }, { status: 404 });
+  try {
+    const run = await prisma.agentRun.findUnique({ where: { id: params.id } });
+    if (!run) {
+      return NextResponse.json({ error: "Run nenalezen" }, { status: 404 });
+    }
+    return NextResponse.json(run);
+  } catch {
+    return NextResponse.json({ error: "Chyba při načítání runu" }, { status: 500 });
   }
-  return NextResponse.json(run);
 }

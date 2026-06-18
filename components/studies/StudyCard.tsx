@@ -43,11 +43,22 @@ export function StudyCard({ study, className, onOpen }: StudyCardProps) {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
     <div
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Zobrazit studii: ${study.title}`}
       className={cn(
-        "group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:bg-card2 hover:border-teal/30",
+        "group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:bg-card2 hover:border-teal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal/50",
         className
       )}
     >

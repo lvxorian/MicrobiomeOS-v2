@@ -45,6 +45,9 @@ model Study {
   @@index([evidenceScore])
   @@index([source])
   @@index([indexedAt])
+  @@index([title, journal, year])
+  @@index([title])
+  @@unique([title, journal, year])
 }
 
 model Taxon {
@@ -62,7 +65,7 @@ model StudyTaxon {
   id        String @id @default(cuid())
   study     Study  @relation(fields: [studyId], references: [id], onDelete: Cascade)
   studyId   String
-  taxon     Taxon  @relation(fields: [taxonId], references: [id])
+  taxon     Taxon  @relation(fields: [taxonId], references: [id], onDelete: Cascade)
   taxonId   String
   direction String
   magnitude Float?
@@ -88,6 +91,8 @@ model Collection {
   emoji       String?
   userId      String
   studies     CollectionStudy[]
+
+  @@index([userId])
 }
 
 model CollectionStudy {
@@ -112,6 +117,8 @@ model Alert {
   isActive      Boolean   @default(true)
   lastTriggered DateTime?
   matches       AlertMatch[]
+
+  @@index([userId])
 }
 
 model AlertMatch {
@@ -124,6 +131,8 @@ model AlertMatch {
   seen      Boolean  @default(false)
 
   @@unique([alertId, studyId])
+  @@index([seen])
+  @@index([matchedAt])
 }
 
 model AgentRun {
@@ -137,6 +146,9 @@ model AgentRun {
   alertsFired  Int       @default(0)
   errorMsg     String?
   logLines     String    @default("[]")
+
+  @@index([status])
+  @@index([startedAt])
 }
 
 model DailyReport {

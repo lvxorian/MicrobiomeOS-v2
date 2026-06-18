@@ -3,6 +3,9 @@ import { StudyCard } from "@/components/studies/StudyCard";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { Microscope } from "lucide-react";
 import { FeedFilters } from "./FeedFilters";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: {
@@ -13,6 +16,14 @@ type Props = {
     search?: string;
   };
 };
+
+function buildQuery(params: Record<string, string | undefined>): string {
+  const usp = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) usp.set(key, String(value));
+  }
+  return usp.toString();
+}
 
 export default async function FeedPage({ searchParams }: Props) {
   const page = parseInt(searchParams.page || "1");
@@ -31,6 +42,9 @@ export default async function FeedPage({ searchParams }: Props) {
   });
 
   const totalPages = Math.ceil(data.total / 20);
+
+  const q = (overrides: Record<string, string | undefined>) =>
+    buildQuery({ tag, source, minEvidence: minEvidence?.toString(), search, ...overrides });
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -63,23 +77,23 @@ export default async function FeedPage({ searchParams }: Props) {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
               {page > 1 && (
-                <a
-                  href={`/feed?page=${page - 1}${tag ? `&tag=${tag}` : ""}`}
+                <Link
+                  href={`/feed?${q({ page: String(page - 1) })}`}
                   className="px-3 py-1.5 rounded-md border border-border text-text-secondary font-mono text-xs hover:bg-card2 transition-colors"
                 >
                   Předchozí
-                </a>
+                </Link>
               )}
               <span className="font-mono text-xs text-text3">
                 {page} / {totalPages}
               </span>
               {page < totalPages && (
-                <a
-                  href={`/feed?page=${page + 1}${tag ? `&tag=${tag}` : ""}`}
+                <Link
+                  href={`/feed?${q({ page: String(page + 1) })}`}
                   className="px-3 py-1.5 rounded-md border border-border text-text-secondary font-mono text-xs hover:bg-card2 transition-colors"
                 >
                   Další
-                </a>
+                </Link>
               )}
             </div>
           )}

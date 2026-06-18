@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { TagBadge } from "@/components/shared/TagBadge";
 import { Bell, Plus, X, Pencil, Trash2, Loader2 } from "lucide-react";
@@ -366,12 +367,12 @@ export default function AlertsPage() {
                       {alert.matches.map((match) => (
                         <div key={match.id} className="flex items-center gap-2">
                           <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", match.seen ? "bg-text3" : "bg-teal animate-pulse")} />
-                          <a
+                          <Link
                             href={`/study/${match.studyId}`}
                             className="font-mono text-[11px] text-text-secondary hover:text-teal truncate transition-colors"
                           >
                             {match.study.title}
-                          </a>
+                          </Link>
                           <span className="font-mono text-[9px] text-text3 ml-auto shrink-0">
                             {new Date(match.matchedAt).toLocaleDateString("cs-CZ")}
                           </span>

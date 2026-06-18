@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { StudyBrief } from "@/components/studies/StudyBrief";
 import { getStudyById } from "@/lib/db/queries";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: { id: string };
 };

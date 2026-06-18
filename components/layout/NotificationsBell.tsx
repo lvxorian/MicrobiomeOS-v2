@@ -116,13 +116,13 @@ export function NotificationsBell() {
                       <span className="block font-mono text-[8px] uppercase tracking-[1px] text-text3 mb-0.5">
                         {m.alertName}
                       </span>
-                      <a
+                      <Link
                         href={`/study/${m.studyId}`}
                         onClick={() => markSeen(m.id)}
                         className="block font-mono text-[11px] text-text-secondary hover:text-teal leading-snug transition-colors line-clamp-2"
                       >
                         {m.studyTitle}
-                      </a>
+                      </Link>
                       <span className="block font-mono text-[8px] text-text3 mt-1">
                         {new Date(m.matchedAt).toLocaleDateString("cs-CZ", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </span>

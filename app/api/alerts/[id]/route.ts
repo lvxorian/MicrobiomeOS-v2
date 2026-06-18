@@ -29,8 +29,11 @@ export async function PATCH(
       },
     });
     return NextResponse.json(alert);
-  } catch {
-    return NextResponse.json({ error: "Alert nenalezen" }, { status: 404 });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      return NextResponse.json({ error: "Alert nenalezen" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Chyba při aktualizaci upozornění" }, { status: 500 });
   }
 }
 
@@ -41,7 +44,10 @@ export async function DELETE(
   try {
     await prisma.alert.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Alert nenalezen" }, { status: 404 });
+  } catch (err: unknown) {
+    if (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "P2025") {
+      return NextResponse.json({ error: "Alert nenalezen" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "Chyba při mazání upozornění" }, { status: 500 });
   }
 }

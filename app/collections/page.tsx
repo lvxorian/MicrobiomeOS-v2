@@ -4,9 +4,11 @@ import { SectionHeader } from "@/components/shared/SectionHeader";
 import { StudyCard } from "@/components/studies/StudyCard";
 import { FolderHeart } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function CollectionsPage() {
   const session = await getSession();
-  const userId = session?.user?.email || "seed-user";
+  const userId = session?.user?.email || "guest";
   const collections = await getCollections(userId);
 
   return (

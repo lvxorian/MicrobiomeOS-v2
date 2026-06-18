@@ -5,7 +5,8 @@ import { MethodFingerprint } from "@/components/studies/MethodFingerprint";
 import { TaxaBarChart } from "@/components/studies/TaxaBarChart";
 import { TagBadge } from "@/components/shared/TagBadge";
 import { SectionHeader } from "@/components/shared/SectionHeader";
-import { ArrowUp, ArrowDown, Minus, ExternalLink, Bookmark, Columns2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowUp, ArrowDown, Minus, ExternalLink, Columns2 } from "lucide-react";
 import type { Study, StudyTaxon, Taxon, Tag } from "@prisma/client";
 import type { FindingItem } from "@/types";
 
@@ -22,7 +23,8 @@ export function StudyBrief({ study }: StudyBriefProps) {
   const findings: FindingItem[] = (() => {
     try {
       if (typeof study.keyFindings === "string") return JSON.parse(study.keyFindings);
-      return (study.keyFindings as unknown as FindingItem[]) || [];
+      if (Array.isArray(study.keyFindings)) return study.keyFindings as FindingItem[];
+      return [];
     } catch {
       return [];
     }
@@ -89,10 +91,9 @@ export function StudyBrief({ study }: StudyBriefProps) {
                 className="flex items-start gap-3 bg-card border border-border rounded-lg p-4"
               >
                 <span className="text-xl mt-0.5 shrink-0">{finding.icon}</span>
-                <p
-                  className="text-sm text-text leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: finding.text }}
-                />
+                <p className="text-sm text-text leading-relaxed">
+                  {finding.text}
+                </p>
               </div>
             ))}
           </div>
@@ -215,17 +216,13 @@ export function StudyBrief({ study }: StudyBriefProps) {
                 Zobrazit původní článek
               </a>
             )}
-            <button className="flex items-center justify-center gap-2 w-full h-9 rounded-md border border-border text-text-secondary font-mono text-[11px] hover:bg-card2 hover:text-text transition-colors">
-              <Bookmark className="h-3.5 w-3.5" />
-              Přidat do sbírky
-            </button>
-            <a
+            <Link
               href={`/comparator?study=${study.id}`}
               className="flex items-center justify-center gap-2 w-full h-9 rounded-md border border-border text-text-secondary font-mono text-[11px] hover:bg-card2 hover:text-text transition-colors"
             >
               <Columns2 className="h-3.5 w-3.5" />
               Porovnat s...
-            </a>
+            </Link>
           </div>
         </div>
       </aside>

@@ -381,6 +381,8 @@ export function KnowledgeGraph({ nodes: initialNodes, edges: initialEdges, taxon
       >
         <canvas
           ref={canvasRef}
+          role="application"
+          aria-label="Interaktivní graf vztahů mezi mikrobiomovými taxony. Navigujte myší — táhněte pro posun, kolečko pro zoom, klikněte na uzel pro detail."
           className="cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}

@@ -1,10 +1,13 @@
 import React from "react";
+import Link from "next/link";
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import { EvidenceScore } from "@/components/studies/EvidenceScore";
 import { MethodFingerprint } from "@/components/studies/MethodFingerprint";
 import { getStudiesList } from "@/lib/db/queries";
 import { ArrowUp, ArrowDown, Minus, ArrowLeftRight, Trophy, FlaskConical } from "lucide-react";
 import type { StudyTaxon, Taxon } from "@prisma/client";
+
+export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: { study?: string; study2?: string };
@@ -131,7 +134,7 @@ export default async function ComparatorPage({ searchParams }: Props) {
           </div>
           <div className="max-h-60 overflow-y-auto space-y-1.5 bg-card border border-border rounded-lg p-1.5 scrollbar-thin">
             {data.studies.map((s) => (
-              <a
+              <Link
                 key={s.id}
                 href={`/comparator?study=${s.id}${study2Id ? `&study2=${study2Id}` : ""}`}
                 className={`block rounded-md p-2.5 transition-all border ${
@@ -150,7 +153,7 @@ export default async function ComparatorPage({ searchParams }: Props) {
                 <p className={`text-[12px] leading-snug line-clamp-2 ${s.id === study1Id ? "text-text" : "text-text-secondary"}`}>
                   {s.title}
                 </p>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -161,7 +164,7 @@ export default async function ComparatorPage({ searchParams }: Props) {
           </div>
           <div className="max-h-60 overflow-y-auto space-y-1.5 bg-card border border-border rounded-lg p-1.5 scrollbar-thin">
             {data.studies.map((s) => (
-              <a
+              <Link
                 key={s.id}
                 href={`/comparator?study=${study1Id || ""}&study2=${s.id}`}
                 className={`block rounded-md p-2.5 transition-all border ${
@@ -180,7 +183,7 @@ export default async function ComparatorPage({ searchParams }: Props) {
                 <p className={`text-[12px] leading-snug line-clamp-2 ${s.id === study2Id ? "text-text" : "text-text-secondary"}`}>
                   {s.title}
                 </p>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

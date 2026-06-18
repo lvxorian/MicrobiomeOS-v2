@@ -3,6 +3,8 @@ import { SectionHeader } from "@/components/shared/SectionHeader";
 import { getTaxaWithStudyCounts, getTaxonEdges } from "@/lib/db/queries";
 import type { TaxonNode } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function GraphPage() {
   const [taxa, edges] = await Promise.all([getTaxaWithStudyCounts(), getTaxonEdges()]);
 

@@ -8,13 +8,23 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
-    await signIn("email", { email, callbackUrl: "/dashboard" });
-    setSent(true);
+    setError("");
+    try {
+      const result = await signIn("email", { email, callbackUrl: "/dashboard", redirect: false });
+      if (result?.error) {
+        setError("Přihlášení selhalo. Zkuste to prosím znovu.");
+      } else {
+        setSent(true);
+      }
+    } catch {
+      setError("Došlo k neočekávané chybě. Zkuste to prosím později.");
+    }
     setLoading(false);
   };
 
@@ -34,6 +44,11 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6">
+          {error && (
+            <div className="mb-4 p-3 rounded-md bg-red/5 border border-red/15 text-red text-xs font-mono">
+              {error}
+            </div>
+          )}
           {sent ? (
             <div className="text-center py-4">
               <span className="font-mono text-[10px] uppercase tracking-[2px] text-teal block mb-2">

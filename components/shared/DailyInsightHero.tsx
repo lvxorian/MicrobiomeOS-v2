@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
 type KeyFinding = { title: string; studyId?: string };
@@ -111,9 +112,9 @@ export function DailyInsightHero({
                 </span>
               );
               return finding.studyId ? (
-                <a key={i} href={`/study/${finding.studyId}`} className="no-underline">
+                <Link key={i} href={`/study/${finding.studyId}`} className="no-underline">
                   {chip}
-                </a>
+                </Link>
               ) : (
                 chip
               );
