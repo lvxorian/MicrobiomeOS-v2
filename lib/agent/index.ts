@@ -210,39 +210,60 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
             return;
           }
 
+          const finalTitle = processed.titleCz || raw.title;
+
+          // Druhý dedup check — přeložený titulek může kolidovat s dříve uloženým
+          if (finalTitle !== raw.title) {
+            const dup = await prisma.study.findFirst({
+              where: { title: finalTitle, journal: raw.journal, year: raw.year },
+              select: { id: true },
+            });
+            if (dup) continue;
+          }
+
           const score = scoreEvidence(processed, {
             journal: raw.journal,
             isPeerReviewed: raw.isPeerReviewed,
             isPreprint: raw.isPreprint,
           });
 
-          // Save study
-          const study = await prisma.study.create({
-            data: {
-              title: processed.titleCz || raw.title,
-              authors: JSON.stringify(raw.authors),
-              journal: raw.journal,
-              year: raw.year,
-              doi: raw.doi,
-              pmid: raw.pmid,
-              url: raw.url,
-              source: raw.source,
-              isPeerReviewed: raw.isPeerReviewed,
-              isPreprint: raw.isPreprint,
-              publishedAt: raw.publishedAt ? new Date(raw.publishedAt) : new Date(raw.year, 0, 1),
-              indexedAt: new Date(),
-              plainSummary: processed.plainSummary,
-              keyFindings: JSON.stringify(processed.keyFindings),
-              limitations: processed.limitations,
-              clinicalRelevance: processed.clinicalRelevance,
-              evidenceScore: score,
-              studyDesign: processed.studyDesign,
-              sampleSize: processed.sampleSize,
-              sequencingMethod: processed.sequencingMethod,
-              cohortType: processed.cohortType,
-              duration: processed.duration,
-            },
-          });
+          // Save study — P2002 ošetření pro unique constraint race
+          let study;
+          try {
+            study = await prisma.study.create({
+              data: {
+                title: finalTitle,
+                authors: JSON.stringify(raw.authors),
+                journal: raw.journal,
+                year: raw.year,
+                doi: raw.doi,
+                pmid: raw.pmid,
+                url: raw.url,
+                source: raw.source,
+                isPeerReviewed: raw.isPeerReviewed,
+                isPreprint: raw.isPreprint,
+                publishedAt: raw.publishedAt ? new Date(raw.publishedAt) : new Date(raw.year, 0, 1),
+                indexedAt: new Date(),
+                plainSummary: processed.plainSummary,
+                keyFindings: JSON.stringify(processed.keyFindings),
+                limitations: processed.limitations,
+                clinicalRelevance: processed.clinicalRelevance,
+                evidenceScore: score,
+                studyDesign: processed.studyDesign,
+                sampleSize: processed.sampleSize,
+                sequencingMethod: processed.sequencingMethod,
+                cohortType: processed.cohortType,
+                duration: processed.duration,
+              },
+            });
+          } catch (createErr: unknown) {
+            // P2002 = unique constraint violation → duplikát (race condition)
+            if (createErr && typeof createErr === "object" && "code" in createErr && (createErr as { code: string }).code === "P2002") {
+              await logLine(runId, "INFO", `Duplicitní studie (unique constraint) — přeskakuji`);
+              continue;
+            }
+            throw createErr; // jiná chyba → propadne do vnějšího catch
+          }
 
           // Upsert taxa (každý taxon zvlášť, jeden špatný nezabije celou studii)
           for (const t of processed.taxa) {
