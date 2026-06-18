@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE "Study" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -162,6 +162,15 @@ CREATE INDEX "Study_source_idx" ON "Study"("source");
 CREATE INDEX "Study_indexedAt_idx" ON "Study"("indexedAt");
 
 -- CreateIndex
+CREATE INDEX "Study_title_journal_year_idx" ON "Study"("title", "journal", "year");
+
+-- CreateIndex
+CREATE INDEX "Study_title_idx" ON "Study"("title");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Study_title_journal_year_key" ON "Study"("title", "journal", "year");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Taxon_name_key" ON "Taxon"("name");
 
 -- CreateIndex
@@ -171,10 +180,28 @@ CREATE UNIQUE INDEX "StudyTaxon_studyId_taxonId_key" ON "StudyTaxon"("studyId", 
 CREATE UNIQUE INDEX "Tag_label_key" ON "Tag"("label");
 
 -- CreateIndex
+CREATE INDEX "Collection_userId_idx" ON "Collection"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "CollectionStudy_collectionId_studyId_key" ON "CollectionStudy"("collectionId", "studyId");
 
 -- CreateIndex
+CREATE INDEX "Alert_userId_idx" ON "Alert"("userId");
+
+-- CreateIndex
+CREATE INDEX "AlertMatch_seen_idx" ON "AlertMatch"("seen");
+
+-- CreateIndex
+CREATE INDEX "AlertMatch_matchedAt_idx" ON "AlertMatch"("matchedAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "AlertMatch_alertId_studyId_key" ON "AlertMatch"("alertId", "studyId");
+
+-- CreateIndex
+CREATE INDEX "AgentRun_status_idx" ON "AgentRun"("status");
+
+-- CreateIndex
+CREATE INDEX "AgentRun_startedAt_idx" ON "AgentRun"("startedAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DailyReport_date_key" ON "DailyReport"("date");
@@ -189,7 +216,7 @@ CREATE INDEX "_StudyToTag_B_index" ON "_StudyToTag"("B");
 ALTER TABLE "StudyTaxon" ADD CONSTRAINT "StudyTaxon_studyId_fkey" FOREIGN KEY ("studyId") REFERENCES "Study"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "StudyTaxon" ADD CONSTRAINT "StudyTaxon_taxonId_fkey" FOREIGN KEY ("taxonId") REFERENCES "Taxon"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "StudyTaxon" ADD CONSTRAINT "StudyTaxon_taxonId_fkey" FOREIGN KEY ("taxonId") REFERENCES "Taxon"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CollectionStudy" ADD CONSTRAINT "CollectionStudy_collectionId_fkey" FOREIGN KEY ("collectionId") REFERENCES "Collection"("id") ON DELETE CASCADE ON UPDATE CASCADE;
