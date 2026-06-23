@@ -19,22 +19,25 @@ jobs:
           cache: "npm"
 
       - name: Switch schema to PostgreSQL
-        run: |
-          node -e "
-          const fs = require('fs');
-          let s = fs.readFileSync('prisma/schema.prisma', 'utf8');
-          s = s.replace('provider = \"sqlite\"', 'provider = \"postgresql\"');
-          if (!s.includes('directUrl')) {
-            s = s.replace('url = env(\"DATABASE_URL\")', 'url = env(\"DATABASE_URL\")\n  directUrl = env(\"DIRECT_URL\")');
-          }
-          fs.writeFileSync('prisma/schema.prisma', s);
-          console.log('Schema switched to postgresql');
-          "
+        run: node scripts/switch-to-postgresql.mjs
 
       - name: Install dependencies
         run: npm ci
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Verify DB connection
+        run: |
+          node -e "
+          const url = process.env.DATABASE_URL || '';
+          console.log('DATABASE_URL host:', url.replace(/\/\/[^:]+:[^@]+@/, '//***:***@'));
+          console.log('DIRECT_URL set:', !!process.env.DIRECT_URL);
+          console.log('DEEPSEEK_API_KEY set:', !!process.env.DEEPSEEK_API_KEY);
+          "
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 
       - name: Run agent
         run: npm run agent:cron
