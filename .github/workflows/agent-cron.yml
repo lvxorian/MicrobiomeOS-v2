@@ -1,0 +1,44 @@
+name: Agent Daily Scan
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Switch schema to PostgreSQL
+        run: |
+          node -e "
+          const fs = require('fs');
+          let s = fs.readFileSync('prisma/schema.prisma', 'utf8');
+          s = s.replace('provider = \"sqlite\"', 'provider = \"postgresql\"');
+          if (!s.includes('directUrl')) {
+            s = s.replace('url = env(\"DATABASE_URL\")', 'url = env(\"DATABASE_URL\")\n  directUrl = env(\"DIRECT_URL\")');
+          }
+          fs.writeFileSync('prisma/schema.prisma', s);
+          console.log('Schema switched to postgresql');
+          "
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Run agent
+        run: npm run agent:cron
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
