@@ -58,10 +58,17 @@ export async function fetchGutBMJ(): Promise<RawStudy[]> {
       const pubDay = parseInt(text(dateObj?.Day?.[0]) || "1");
       const publishedAt = new Date(Date.UTC(pubYear, pubMonth - 1, pubDay)).toISOString();
 
+      const authorList = art?.AuthorList?.[0]?.Author || [];
+      const authors = authorList.map((auth: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+        const last = text(auth.LastName?.[0]);
+        const fore = text(auth.ForeName?.[0]);
+        return `${last} ${fore}`;
+      });
+
       return {
         title,
         abstract,
-        authors: ["Gut"],
+        authors: authors.length > 0 ? authors : ["Gut"],
         journal: "Gut",
         year: pubYear,
         publishedAt,

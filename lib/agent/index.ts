@@ -192,7 +192,7 @@ export async function runAgent(sourceKey?: string, existingRunId?: string) {
           await logLine(runId, "PARSE", `Zpracování: ${String(raw.title).slice(0, 60)}...`);
 
           const processed = await processStudyWithLLM(raw);
-          await sleep(500); // Rate limit
+          await sleep(100); // Rate limit
 
           const finalTitle = processed.titleCz || raw.title;
           await logLine(runId, "LLM", `LLM OK — titulek: ${String(finalTitle).slice(0, 80)}`);

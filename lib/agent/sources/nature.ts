@@ -1,50 +1,84 @@
 import axios from "axios";
-import { load } from "cheerio";
+import { parseStringPromise } from "xml2js";
 import type { RawStudy } from "@/types";
 
-function resolveUrl(base: string, href: string | undefined): string {
-  if (!href) return base;
-  if (href.startsWith("http://") || href.startsWith("https://")) return href;
-  return base + (href.startsWith("/") ? "" : "/") + href;
+// Nature — přes PubMed API (spolehlivější než scraping nature.com)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function text(val: any): string {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object" && typeof val._ === "string") return val._;
+  return "";
 }
 
-function extractDoi(href: string | undefined): string | null {
-  if (!href) return null;
-  const doiMatch = href.match(/10\.\d{4,}\/[^\s?#]+/);
-  return doiMatch ? doiMatch[0] : null;
-}
+const PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
 export async function fetchNature(): Promise<RawStudy[]> {
   try {
-    const res = await axios.get(
-      "https://www.nature.com/search?q=microbiome&order=date_desc&date_range=last_7_days&article_type=research",
-      { timeout: 15000, headers: { "User-Agent": "MicrobiomeOS/1.0" } }
-    );
-    const $ = load(res.data);
-    const studies: RawStudy[] = [];
+    const searchRes = await axios.get(`${PUBMED_BASE}/esearch.fcgi`, {
+      params: {
+        db: "pubmed",
+        term: 'microbiome AND "Nature"[Journal]',
+        reldate: 1,
+        datetype: "pdat",
+        retmax: 20,
+        retmode: "json",
+        sort: "date",
+      },
+      timeout: 15000,
+    });
 
-    $("article").each((_, el) => {
-      const title = $(el).find("h3 a").text().trim();
-      if (!title) return;
-      const href = $(el).find("h3 a").attr("href");
-      const doi = extractDoi(href);
-      const year = new Date().getFullYear();
+    const idList: string[] = searchRes.data?.esearchresult?.idlist || [];
+    if (idList.length === 0) return [];
 
-      studies.push({
+    const fetchRes = await axios.get(`${PUBMED_BASE}/efetch.fcgi`, {
+      params: {
+        db: "pubmed",
+        id: idList.join(","),
+        rettype: "xml",
+        retmode: "xml",
+      },
+      timeout: 30000,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = (await parseStringPromise(fetchRes.data)) as any;
+    const articles = parsed?.PubmedArticleSet?.PubmedArticle || [];
+
+    return articles.map((article: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const a = article.MedlineCitation?.[0];
+      const art = a?.Article?.[0];
+      const title = text(art?.ArticleTitle?.[0]) || "Neznámý název";
+      const abstract = (art?.Abstract?.[0]?.AbstractText || []).map(text).join(" ") || "Abstrakt není k dispozici";
+      const pmid = text(a?.PMID?.[0]) || a?.PMID?.[0]?._ || "";
+      const doi = art?.ELocationID?.find((e: any) => e.$.EIdType === "doi")?._ || null;  // eslint-disable-line @typescript-eslint/no-explicit-any
+      const dateObj = a?.DateCompleted?.[0] || art?.ArticleDate?.[0];
+      const pubYear = parseInt(text(dateObj?.Year?.[0]) || String(new Date().getFullYear()));
+      const pubMonth = parseInt(text(dateObj?.Month?.[0]) || "1");
+      const pubDay = parseInt(text(dateObj?.Day?.[0]) || "1");
+      const publishedAt = new Date(Date.UTC(pubYear, pubMonth - 1, pubDay)).toISOString();
+
+      const authorList = art?.AuthorList?.[0]?.Author || [];
+      const authors = authorList.map((auth: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+        const last = text(auth.LastName?.[0]);
+        const fore = text(auth.ForeName?.[0]);
+        return `${last} ${fore}`;
+      });
+
+      return {
         title,
-        abstract: "Abstrakt bude doplněn po stažení plného textu.",
-        authors: [],
+        abstract,
+        authors: authors.length > 0 ? authors : ["Neznámý autor"],
         journal: "Nature",
-        year,
-        doi: doi || undefined,
-        url: resolveUrl("https://www.nature.com", href),
+        year: pubYear,
+        publishedAt,
+        pmid: String(pmid),
+        doi: typeof doi === "string" ? doi : undefined,
+        url: doi ? `https://doi.org/${doi}` : `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
         source: "NATURE" as const,
         isPeerReviewed: true,
         isPreprint: false,
-      });
+      };
     });
-
-    return studies.slice(0, 20);
   } catch (err) {
     console.error("[Nature] Chyba:", (err as Error).message);
     return [];

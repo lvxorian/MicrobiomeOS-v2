@@ -58,10 +58,17 @@ export async function fetchCell(): Promise<RawStudy[]> {
       const pubDay = parseInt(text(dateObj?.Day?.[0]) || "1");
       const publishedAt = new Date(Date.UTC(pubYear, pubMonth - 1, pubDay)).toISOString();
 
+      const authorList = art?.AuthorList?.[0]?.Author || [];
+      const authors = authorList.map((auth: any) => {  // eslint-disable-line @typescript-eslint/no-explicit-any
+        const last = text(auth.LastName?.[0]);
+        const fore = text(auth.ForeName?.[0]);
+        return `${last} ${fore}`;
+      });
+
       return {
         title,
         abstract,
-        authors: ["Cell Host & Microbe"],
+        authors: authors.length > 0 ? authors : ["Cell Host & Microbe"],
         journal: "Cell Host & Microbe",
         year: pubYear,
         publishedAt,

@@ -19,7 +19,7 @@ export async function fetchPubMed(): Promise<RawStudy[]> {
     const searchRes = await axios.get(searchUrl, {
       params: {
         db: "pubmed",
-        term: "microbiome[Title/Abstract]",
+        term: 'microbiome[Title/Abstract] NOT "Nature"[Journal] NOT "Cell Host Microbe"[Journal] NOT "Gut"[Journal] NOT "bioRxiv"[Journal]',
         reldate: 1,           // pouze včerejší studie
         datetype: "pdat",     // podle data publikace
         retmax: 50,

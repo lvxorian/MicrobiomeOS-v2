@@ -64,16 +64,20 @@ If the abstract doesn't mention specific taxa by name, return an empty taxa arra
 Never fabricate bacteria names — this is for medical use and accuracy is critical.
 `;
 
-export async function processStudyWithLLM(raw: RawStudy): Promise<ProcessedStudy> {
-  const response = await deepseek.chat.completions.create({
-    model: "deepseek-chat",
-    max_tokens: 2000,
-    temperature: 0.1, // Snížená teplota pro vyšší faktickou přesnost
-    messages: [
-      { role: "system", content: PROCESSOR_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function llmWithRetry(raw: RawStudy, retries = 3): Promise<ProcessedStudy> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const response = await deepseek.chat.completions.create({
+        model: "deepseek-chat",
+        max_tokens: 2000,
+        temperature: 0.1,
+        messages: [
+          { role: "system", content: PROCESSOR_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `
 STUDY TITLE: ${raw.title}
 JOURNAL: ${raw.journal} (${raw.year})
 AUTHORS: ${raw.authors.join(", ")}
@@ -82,12 +86,39 @@ ABSTRACT:
 ${raw.abstract}
 
 DOI: ${raw.doi || "not provided"}
-        `.trim(),
-      },
-    ],
-  });
+            `.trim(),
+          },
+        ],
+      });
 
-  const text = response.choices[0]?.message?.content || "";
+      return parseResponse(response.choices[0]?.message?.content || "");
+    } catch (err) {
+      const msg = (err as Error).message || String(err);
+      const isRetryable =
+        msg.includes("timeout") ||
+        msg.includes("ETIMEDOUT") ||
+        msg.includes("ECONNRESET") ||
+        msg.includes("429") ||
+        msg.includes("500") ||
+        msg.includes("502") ||
+        msg.includes("503") ||
+        msg.includes("rate");
+
+      if (isRetryable && attempt < retries - 1) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+        console.warn(`[LLM] Retry ${attempt + 1}/${retries} po ${delay}ms: ${msg.slice(0, 80)}`);
+        await sleep(delay);
+        continue;
+      }
+
+      throw err;
+    }
+  }
+
+  throw new Error("LLM retry exhausted");
+}
+
+function parseResponse(text: string): ProcessedStudy {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error(`LLM nevrátil validní JSON. Odpověď: ${text.slice(0, 200)}`);
@@ -99,6 +130,12 @@ DOI: ${raw.doi || "not provided"}
   } catch {
     throw new Error(`Chyba parsování JSON z LLM odpovědi: ${jsonMatch[0].slice(0, 200)}`);
   }
+
+  return result;
+}
+
+export async function processStudyWithLLM(raw: RawStudy): Promise<ProcessedStudy> {
+  const result = await llmWithRetry(raw);
 
   // VALIDACE: Ověř, že každý taxon je zmíněn v abstraktu (case-insensitive)
   const abstractLower = (raw.abstract || "").toLowerCase();

@@ -11,6 +11,8 @@ function getClient(): OpenAI {
   _client = new OpenAI({
     baseURL: "https://api.deepseek.com",
     apiKey,
+    timeout: 90000,
+    maxRetries: 0,
   });
   return _client;
 }
